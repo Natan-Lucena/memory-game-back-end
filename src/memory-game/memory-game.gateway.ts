@@ -10,10 +10,16 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
+interface Player {
+  id: string;
+  score: number;
+}
+
 @WebSocketGateway()
 export class MemoryGameGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
+  private scores: Player[] = [];
   @WebSocketServer() server: Server;
 
   afterInit(server: Server) {
