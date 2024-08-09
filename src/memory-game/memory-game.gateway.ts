@@ -59,4 +59,17 @@ export class MemoryGameGateway
 
     console.log(`Team ${team.name} joined match ${this.match._id}`);
   }
+
+  @SubscribeMessage('endGame')
+  async handleEndGame(@ConnectedSocket() client: Socket): Promise<void> {
+    if (this.match) {
+      this.server.to(this.match._id.toString()).emit('gameEnded');
+      const teams = await this.teamModel.find({ matchId: this.match._id });
+      client.emit('gameResult', teams);
+      await this.matchModel.deleteOne({ _id: this.match._id });
+      this.match = null;
+
+      console.log('Game ended and match deleted.');
+    }
+  }
 }
