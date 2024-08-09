@@ -1,10 +1,11 @@
-import { Schema } from 'mongoose';
+import { Schema, Document, model } from 'mongoose';
 
-const MatchSchema = new Schema({}, { timestamps: true });
-
-export interface Match {
+export interface Match extends Document {
+  _id: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export default MatchSchema;
+export const MatchSchema = new Schema({}, { timestamps: true });
+
+export const MatchModel = model<Match>('Match', MatchSchema);

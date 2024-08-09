@@ -19,6 +19,7 @@ export class MemoryGameGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   @WebSocketServer() server: Server;
+  private match: Match | null = null;
 
   constructor(
     @InjectModel('Team') private readonly teamModel: Model<Team>,
@@ -30,7 +31,7 @@ export class MemoryGameGateway
   }
 
   handleConnection(client: Socket, ...args: any[]) {
-    console.log(`Client connected:`);
+    console.log(`Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
@@ -39,20 +40,23 @@ export class MemoryGameGateway
 
   @SubscribeMessage('joinGame')
   async handleJoinGame(
-    @MessageBody() data: { teamName: string; matchId: string },
+    @MessageBody() data: { teamName: string },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
+    if (!this.match) {
+      this.match = new this.matchModel();
+      await this.match.save();
+      console.log(`New match created with ID ${this.match._id}`);
+    }
     const team = new this.teamModel({
       name: data.teamName,
       score: 0,
-      matchId: data.matchId,
+      matchId: this.match._id,
     });
     await team.save();
+    client.join(this.match._id.toString());
+    this.server.to(this.match._id.toString()).emit('teamJoined', team);
 
-    client.join(data.matchId);
-
-    this.server.to(data.matchId).emit('teamJoined', team);
-
-    console.log(`Team ${team.name} joined match ${data.matchId}`);
+    console.log(`Team ${team.name} joined match ${this.match._id}`);
   }
 }
