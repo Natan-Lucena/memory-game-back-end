@@ -1,4 +1,4 @@
-import { ObjectId, Schema } from 'mongoose';
+import { Document, ObjectId, Schema } from 'mongoose';
 
 const TeamSchema = new Schema(
   {
@@ -16,7 +16,7 @@ const TeamSchema = new Schema(
   },
   { timestamps: true },
 );
-export interface Team {
+export interface Team extends Document {
   name: string;
   score: number;
   matchId?: ObjectId;
