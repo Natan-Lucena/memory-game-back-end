@@ -16,15 +16,14 @@ import { Match } from 'src/match/match.schema';
 
 @WebSocketGateway()
 export class MemoryGameGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
   private match: Match | null = null;
 
   constructor(
     @InjectModel('Team') private readonly teamModel: Model<Team>,
     @InjectModel('Match') private readonly matchModel: Model<Match>,
-  ) {}
+  ) { }
 
   afterInit(server: Server) {
     console.log('WebSocket server initialized');
@@ -71,5 +70,31 @@ export class MemoryGameGateway
 
       console.log('Game ended and match deleted.');
     }
+  }
+
+  @SubscribeMessage('seeRanking')
+  async handleSeeRanking() {
+    const allTeams = await this.teamModel.find(
+      {
+        score: { $gt: 0 }
+      },
+      null,
+      {
+        sort: {
+          score: -1
+        }
+      }
+    );
+
+    const ranking = allTeams.map((team) => {
+      return {
+        teamName: team.name,
+        score: team.score
+      }
+    });
+
+    this.server.emit('showRanking', ranking);
+
+    console.log(ranking)
   }
 }
