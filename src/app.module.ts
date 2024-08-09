@@ -5,7 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { TeamsModule } from './teams/teams.module';
 import { MatchModule } from './match/matchs.module';
 import TeamSchema from './teams/team.schema';
-import MatchSchema from './match/match.schema';
+import { MatchSchema } from './match/match.schema';
 
 const dbUrl = c.get<string>('dbUrl');
 
