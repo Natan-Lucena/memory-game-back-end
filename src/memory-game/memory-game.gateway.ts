@@ -101,4 +101,64 @@ export class MemoryGameGateway
     console.log(ranking);
     return JSON.stringify({ event: 'seeRanking', status: 'received' });
   }
+
+  @SubscribeMessage('answerQuestion')
+  async handleAnswerQuestion(
+    @MessageBody() data: {
+      teamName: string,
+      difficulty: string,
+    },
+    @ConnectedSocket() client: Socket
+  ) {
+    const { teamName, difficulty } = data;
+    let addScore = 0;
+
+    const team = await this.teamModel.findOne({
+      name: teamName,
+    });
+
+    if (!team) {
+      console.log('Team not found');
+      throw new Error(`Team with name ${teamName} not found`);
+    }
+
+    switch (difficulty) {
+      case 'easy':
+        addScore = 125;
+        break;
+      case 'medium':
+        addScore = 250;
+        break;
+      case 'hard':
+        addScore = 500;
+        break;
+      default:
+        addScore = 0;
+    }
+
+    const updatedTeam = await this.teamModel.findOneAndUpdate(
+      {
+        name: teamName,
+      },
+      {
+        $inc: { score: addScore },
+      },
+      {
+        new: true,
+      }
+    );
+
+    this.server.emit(
+      'answerQuestion',
+      {
+        teamName: updatedTeam.name,
+        score: updatedTeam.score,
+      },
+    );
+
+    return JSON.stringify({
+      event: 'answerQuestion',
+      status: 'received',
+    });
+  }
 }
