@@ -42,8 +42,7 @@ export class MemoryGameGateway
   async handleJoinGame(
     @MessageBody() data: { teamName: string },
     @ConnectedSocket() client: Socket,
-  ): Promise<void> {
-    client.emit('acknowledgement', { event: 'joinGame', status: 'received' });
+  ) {
     if (!this.match) {
       this.match = new this.matchModel();
       await this.match.save();
@@ -59,11 +58,11 @@ export class MemoryGameGateway
     this.server.to(this.match._id.toString()).emit('teamJoined', team);
 
     console.log(`Team ${team.name} joined match ${this.match._id}`);
+    return JSON.stringify({ event: 'joinGame', status: 'received' });
   }
 
   @SubscribeMessage('endGame')
-  async handleEndGame(@ConnectedSocket() client: Socket): Promise<void> {
-    client.emit('acknowledgement', { event: 'endGame', status: 'received' });
+  async handleEndGame(@ConnectedSocket() client: Socket) {
     if (this.match) {
       this.server.to(this.match._id.toString()).emit('gameEnded');
       const teams = await this.teamModel.find({ matchId: this.match._id });
@@ -73,11 +72,11 @@ export class MemoryGameGateway
 
       console.log('Game ended and match deleted.');
     }
+    return JSON.stringify({ event: 'endGame', status: 'received' });
   }
 
   @SubscribeMessage('seeRanking')
   async handleSeeRanking(@ConnectedSocket() client: Socket) {
-    client.emit('acknowledgement', { event: 'seeRanking', status: 'received' });
     const allTeams = await this.teamModel.find(
       {
         score: { $gt: 0 },
@@ -100,5 +99,6 @@ export class MemoryGameGateway
     this.server.emit('showRanking', ranking);
 
     console.log(ranking);
+    return JSON.stringify({ event: 'seeRanking', status: 'received' });
   }
 }
