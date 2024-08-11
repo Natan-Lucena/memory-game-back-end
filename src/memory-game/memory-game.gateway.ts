@@ -76,18 +76,14 @@ export class MemoryGameGateway
   }
 
   @SubscribeMessage('seeRanking')
-  async handleSeeRanking(@ConnectedSocket() client: Socket) {
-    const allTeams = await this.teamModel.find(
-      {
-        score: { $gt: 0 },
-      },
-      null,
-      {
-        sort: {
+  async handleSeeRanking() {
+    const allTeams = await this.teamModel
+      .find()
+      .sort(
+        {
           score: -1,
-        },
-      },
-    );
+        }
+      );
 
     const ranking = allTeams.map((team) => {
       return {
@@ -107,8 +103,7 @@ export class MemoryGameGateway
     @MessageBody() data: {
       teamName: string,
       difficulty: string,
-    },
-    @ConnectedSocket() client: Socket
+    }
   ) {
     const { teamName, difficulty } = data;
     let addScore = 0;
@@ -134,9 +129,10 @@ export class MemoryGameGateway
         break;
       default:
         addScore = 0;
+        break;
     }
 
-    const updatedTeam = await this.teamModel.findOneAndUpdate(
+    await this.teamModel.findOneAndUpdate(
       {
         name: teamName,
       },
@@ -148,13 +144,7 @@ export class MemoryGameGateway
       }
     );
 
-    this.server.emit(
-      'answerQuestion',
-      {
-        teamName: updatedTeam.name,
-        score: updatedTeam.score,
-      },
-    );
+    await this.handleSeeRanking();
 
     return JSON.stringify({
       event: 'answerQuestion',
