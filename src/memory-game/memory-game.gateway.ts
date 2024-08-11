@@ -32,6 +32,7 @@ export class MemoryGameGateway
 
   handleConnection(client: Socket, ...args: any[]) {
     console.log(`Client connected: ${client.id}`);
+    this.server.emit('availableMatch', !!this.match);
   }
 
   handleDisconnect(client: Socket) {
@@ -44,9 +45,8 @@ export class MemoryGameGateway
     @ConnectedSocket() client: Socket,
   ) {
     if (!this.match) {
-      this.match = new this.matchModel();
-      await this.match.save();
-      console.log(`New match created with ID ${this.match._id}`);
+      console.log('Match not found');
+      throw new Error(`There are no matches available`);
     }
     const team = new this.teamModel({
       name: data.teamName,
@@ -77,13 +77,9 @@ export class MemoryGameGateway
 
   @SubscribeMessage('seeRanking')
   async handleSeeRanking() {
-    const allTeams = await this.teamModel
-      .find()
-      .sort(
-        {
-          score: -1,
-        }
-      );
+    const allTeams = await this.teamModel.find().sort({
+      score: -1,
+    });
 
     const ranking = allTeams.map((team) => {
       return {
@@ -100,10 +96,7 @@ export class MemoryGameGateway
 
   @SubscribeMessage('answerQuestion')
   async handleAnswerQuestion(
-    @MessageBody() data: {
-      teamName: string,
-      difficulty: string,
-    }
+    @MessageBody() data: { teamName: string; difficulty: string },
   ) {
     const { teamName, difficulty } = data;
     let addScore = 0;
@@ -141,7 +134,7 @@ export class MemoryGameGateway
       },
       {
         new: true,
-      }
+      },
     );
 
     await this.handleSeeRanking();
@@ -150,5 +143,22 @@ export class MemoryGameGateway
       event: 'answerQuestion',
       status: 'received',
     });
+  }
+
+  @SubscribeMessage('startMatch')
+  async handleStartMatch(@ConnectedSocket() client: Socket) {
+    if (!this.match) {
+      this.match = new this.matchModel();
+      await this.match.save();
+      console.log(`New match created with ID ${this.match._id}`);
+
+      try {
+        await this.teamModel.deleteMany({});
+        this.server.emit('availableMatch', true);
+        return JSON.stringify({ event: 'startMatch', status: 'received' });
+      } catch (error) {
+        console.log(error);
+      }
+    }
   }
 }
