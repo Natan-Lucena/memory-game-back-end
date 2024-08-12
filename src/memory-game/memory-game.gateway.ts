@@ -13,6 +13,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Team } from 'src/teams/team.schema';
 import { Match } from 'src/match/match.schema';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 @WebSocketGateway()
 export class MemoryGameGateway
@@ -46,8 +47,19 @@ export class MemoryGameGateway
   ) {
     if (!this.match) {
       console.log('Match not found');
-      throw new Error(`There are no matches available`);
+      throw new Error('There are no matches available');
     }
+
+    const existTeam = await this.teamModel.findOne({ name: data.teamName });
+
+    if (existTeam) {
+      const error = new Error(
+        `There is already a team with the name ${existTeam.name}`,
+      );
+      this.server.emit('error', { status: error.name, error: error.message });
+      return;
+    }
+
     const team = new this.teamModel({
       name: data.teamName,
       score: 0,
