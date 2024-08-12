@@ -13,7 +13,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Team } from 'src/teams/team.schema';
 import { Match } from 'src/match/match.schema';
-import { HttpException, HttpStatus } from '@nestjs/common';
 
 @WebSocketGateway()
 export class MemoryGameGateway
@@ -110,6 +109,12 @@ export class MemoryGameGateway
   async handleAnswerQuestion(
     @MessageBody() data: { teamName: string; difficulty: string },
   ) {
+    if (!this.match) {
+      const error = new Error('Match not found');
+      console.log(error);
+      this.server.emit('error', { status: error.name, error: error.message });
+    }
+
     const { teamName, difficulty } = data;
     let addScore = 0;
 
@@ -160,6 +165,7 @@ export class MemoryGameGateway
   @SubscribeMessage('startMatch')
   async handleStartMatch(@ConnectedSocket() client: Socket) {
     if (!this.match) {
+      await this.matchModel.deleteMany();
       this.match = new this.matchModel();
       await this.match.save();
       console.log(`New match created with ID ${this.match._id}`);
