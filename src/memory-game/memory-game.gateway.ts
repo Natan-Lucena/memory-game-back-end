@@ -46,17 +46,17 @@ export class MemoryGameGateway
   ) {
     if (!this.match) {
       console.log('Match not found');
-      throw new Error('There are no matches available');
+      const error = new Error('There are no matches available');
+      return JSON.stringify({ status: 'error', event: error.message });
     }
 
     const existTeam = await this.teamModel.findOne({ name: data.teamName });
 
     if (existTeam) {
       const error = new Error(
-        `There is already a team with the name ${existTeam.name}`,
+        `Já existe um time com o nome "${existTeam.name}."`,
       );
-      this.server.emit('error', { status: error.name, error: error.message });
-      return;
+      return JSON.stringify({ status: 'error', event: error.message });
     }
 
     const team = new this.teamModel({
@@ -112,7 +112,6 @@ export class MemoryGameGateway
     if (!this.match) {
       const error = new Error('Match not found');
       console.log(error);
-      this.server.emit('error', { status: error.name, error: error.message });
     }
 
     const { teamName, difficulty } = data;
